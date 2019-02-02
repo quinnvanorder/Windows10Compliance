@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScriptExport xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.kaseya.com/vsa/2008/12/Scripting">
+  <Procedure name="Workstation Deploy - REMOVE EXCLUSION">
+    <Body description="">
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="AgentTempDirectory" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="KWORKING" />
+      </Statement>
+      <If description="">
+        <Condition name="TestFile">
+          <Parameter xsi:type="StringParameter" name="Path" value="#KWORKING#\Windows10EXCLUDE.txt" />
+          <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+          <Parameter xsi:type="StringParameter" name="Value" value="" />
+        </Condition>
+        <Then>
+          <Statement name="DeleteFile" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="Path" value="#KWORKING#\Windows10EXCLUDE.txt" />
+          </Statement>
+        </Then>
+      </If>
+    </Body>
+  </Procedure>
+</ScriptExport>

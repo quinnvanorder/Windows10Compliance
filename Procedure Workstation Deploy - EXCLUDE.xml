@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScriptExport xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.kaseya.com/vsa/2008/12/Scripting">
+  <Procedure name="Workstation Deploy - EXCLUDE">
+    <Body description="">
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="AgentTempDirectory" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="KWORKING" />
+      </Statement>
+      <Statement name="WriteFile" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Path" value="#KWORKING#\Windows10EXCLUDE.txt" />
+        <Parameter xsi:type="StringParameter" name="ManagedFile" value="VSASharedFiles\10Upgrade\Windows10EXCLUDE.txt" />
+        <Parameter xsi:type="BooleanParameter" name="DeleteAfter" value="False" />
+      </Statement>
+      <If description="">
+        <Condition name="TestFile">
+          <Parameter xsi:type="StringParameter" name="Path" value="#KWORKING#\Windows10Compliance.txt" />
+          <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+          <Parameter xsi:type="StringParameter" name="Value" value="" />
+        </Condition>
+        <Then>
+          <Statement name="DeleteFile" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="Path" value="#KWORKING#\Windows10Compliance.txt" />
+          </Statement>
+        </Then>
+      </If>
+      <Statement name="ExecuteShellCommand" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Command" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot; If(test-path #KWORKING#\Win10){Remove-Item #KWORKING#\Win10 -Recurse -Force}&quot;" />
+        <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+        <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+      </Statement>
+      <Statement name="UpdateSystemInfo" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="ColumnName" value="Win_10_Compliance" />
+        <Parameter xsi:type="StringParameter" name="Value" value="EXCLUDED" />
+      </Statement>
+    </Body>
+  </Procedure>
+</ScriptExport>
