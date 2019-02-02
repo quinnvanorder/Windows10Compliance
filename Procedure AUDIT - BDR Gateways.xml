@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScriptExport xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.kaseya.com/vsa/2008/12/Scripting">
+  <Procedure name="AUDIT - BDR Gateways" >
+    <Body description="Runs automatically via COLO tied policy filtered to SQL instances. Runs daily per device, staggered over 24 hours to result in a regularly updated gateway file. No need to manually run. In the event that this falls apart, the gateways file will become 'stale' but wont break anything. Inaccurate or damaged instances of the gateway file will simply break lan caching, which will result in the workstations opting for direct download. ">
+      <If description="">
+        <Condition name="TestFile">
+          <Parameter xsi:type="StringParameter" name="Path" value="C:\Temp\BDRGateway.sql" />
+          <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+          <Parameter xsi:type="StringParameter" name="Value" value="" />
+        </Condition>
+        <Then>
+          <Statement name="DeleteFile" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="Path" value="C:\Temp\BDRGateway.sql" />
+          </Statement>
+        </Then>
+      </If>
+      <Statement name="WriteFile" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Path" value="C:\Temp\BDRGateway.sql" />
+        <Parameter xsi:type="StringParameter" name="ManagedFile" value="VSASharedFiles\10Upgrade\BDRGateway.sql" />
+        <Parameter xsi:type="BooleanParameter" name="DeleteAfter" value="False" />
+      </Statement>
+      <Statement name="ExecuteShellCommand" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Command" value="sqlcmd -S [Kaseya-Server-Name] -y0 -i &quot;C:\Temp\BDRGateway.sql&quot; -o &quot;C:\Temp\Gateways.txt&quot; -U reporting -P [reporting user password]  " />
+        <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+        <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+      </Statement>
+      <If description="">
+        <Condition name="TestFile">
+          <Parameter xsi:type="StringParameter" name="Path" value="C:\Temp\Gateways.txt" />
+          <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+          <Parameter xsi:type="StringParameter" name="Value" value="" />
+        </Condition>
+        <Then>
+          <Statement name="WriteScriptLogEntry" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="Comment" value="Audit succeeded, file transferred to VSA" />
+          </Statement>
+          <Statement name="ExecuteShellCommand" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="Command" value="net use &quot;\\[Kaseya-Server-Name]\10$&quot; /user:&quot;[Kaseya-Server-Name]\ISOGrabber&quot; &quot;[Unique Password]&quot;" />
+            <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+            <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+          </Statement>
+          <Statement name="ExecuteShellCommand" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="Command" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot;Copy-Item 'C:\Temp\Gateways.txt' -Destination '\\[Kaseya-Server-Name]\10$\Gateways.txt'&quot;" />
+            <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+            <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+          </Statement>
+          <Statement name="ExecuteShellCommand" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="Command" value="net use &quot;\\[Kaseya-Server-Name]\10$&quot; /delete" />
+            <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+            <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+          </Statement>
+        </Then>
+        <Else>
+          <Statement name="WriteScriptLogEntry" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="Comment" value="Audit failed. " />
+          </Statement>
+        </Else>
+      </If>
+    </Body>
+  </Procedure>
+</ScriptExport>
