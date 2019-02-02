@@ -5,3 +5,5 @@ Note that some aspects of this have been sanatized. There are references to a lo
 
 Some references to "C/Temp" have replaced specific kworking directories in this example, as kworking is variable per company.
 
+Any DropBox URL's have been broken to avoid exposing data. Replace with your own URL's. The extraction zip referenced by the scripts is in the repo, all other dropbox files are created with the "MAINTENANCE - Update ISO" Procedure. 
+
