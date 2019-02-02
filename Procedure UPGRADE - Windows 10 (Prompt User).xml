@@ -1,0 +1,247 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScriptExport xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.kaseya.com/vsa/2008/12/Scripting">
+  <Procedure name="UPGRADE - Windows 10 (Prompt User)">
+    <Body description="To be manually executed. Sends user a prompt requesting permission to upgrade. If user selects yes, ISO is unpacked and the setup is executed. Nothing happening from this point for more than 2 hours means either the machine is already on the target build, or some component failed. If all logs indicate success, some component of windows stopped the upgrade. Manually run the setup (C:\Temp\Win10\ISO), and you will be presented with the reason for failure. ">
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="Prompt" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="Email address to send upgrade status to: " />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="EMAIL" />
+      </Statement>
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="AgentTempDirectory" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="KWORKING" />
+      </Statement>
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="ConstantValue" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="#KWORKING#\Win10" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="ROOT" />
+      </Statement>
+      <If description="">
+        <Condition name="TestFile">
+          <Parameter xsi:type="StringParameter" name="Path" value="#KWORKING#\Windows10EXCLUDE.txt" />
+          <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+          <Parameter xsi:type="StringParameter" name="Value" value="" />
+        </Condition>
+        <Then>
+          <Statement name="UpdateSystemInfo" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="ColumnName" value="Win_10_Compliance" />
+            <Parameter xsi:type="StringParameter" name="Value" value="EXCLUDED" />
+          </Statement>
+          <Statement name="WriteScriptLogEntry" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="Comment" value="System excluded from 10 deployment on per machine basis, terminating." />
+          </Statement>
+        </Then>
+        <Else>
+          <If description="">
+            <Condition name="TestFile">
+              <Parameter xsi:type="StringParameter" name="Path" value="#KWORKING#\Windows10Compliance.txt" />
+              <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+              <Parameter xsi:type="StringParameter" name="Value" value="" />
+            </Condition>
+            <Then>
+              <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Comment" value="Workstation deploy enabled" />
+              </Statement>
+              <Statement name="ExecuteShellCommand" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Command" value="if not exist &quot;#ROOT#&quot; mkdir &quot;#ROOT#&quot;" />
+                <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+                <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+              </Statement>
+              <Statement description="Runs workstation deployment one last time to verify upgrade files are intact" name="ExecuteScript" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="ScriptID" value="281421709" />
+                <Parameter xsi:type="StringParameter" name="ScriptName" value="DEPLOY - Windows 10 Upgrade (Workstation)" />
+                <Parameter xsi:type="StringParameter" name="TimeDelay" value="" />
+                <Parameter xsi:type="EnumParameter" name="TimeUnit" value="Immediate" />
+              </Statement>
+              <If description="">
+                <Condition name="CheckVariable">
+                  <Parameter xsi:type="StringParameter" name="VariableName" value="#vSystemInfoManual.Win_10_Compliance#" />
+                  <Parameter xsi:type="EnumParameter" name="Condition" value="Equals" />
+                  <Parameter xsi:type="StringParameter" name="Value" value="STAGED" />
+                </Condition>
+                <Then>
+                  <If description="Cleaning up unpack if present from previous failed runs">
+                    <Condition name="TestFile">
+                      <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Unpack\setup.exe" />
+                      <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+                      <Parameter xsi:type="StringParameter" name="Value" value="" />
+                    </Condition>
+                    <Then>
+                      <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                        <Parameter xsi:type="StringParameter" name="Comment" value="Found old setup files from previous failed run, deleting" />
+                      </Statement>
+                      <Statement name="ExecuteShellCommand" continueOnFail="false">
+                        <Parameter xsi:type="StringParameter" name="Command" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot; If(test-path #ROOT#\Unpack){Remove-Item #ROOT#\Unpack -Recurse -Force}&quot;" />
+                        <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+                        <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+                      </Statement>
+                    </Then>
+                  </If>
+                  <Statement description="Get ISO path" name="Execute Shell Command - Get Results to Variable" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="Parameter1" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot;$a = Get-ChildItem -Path #ROOT#\ISO -Filter *.iso; $a.Name&quot;" />
+                    <Parameter xsi:type="StringParameter" name="Parameter2" value="False" />
+                    <Parameter xsi:type="StringParameter" name="Parameter3" value="System" />
+                  </Statement>
+                  <Statement name="GetVariable" continueOnFail="false">
+                    <Parameter xsi:type="EnumParameter" name="VariableType" value="ConstantValue" />
+                    <Parameter xsi:type="StringParameter" name="SourceContent" value="#global:cmdresults#" />
+                    <Parameter xsi:type="StringParameter" name="VariableName" value="ISO" />
+                  </Statement>
+                  <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="Comment" value="ISO is #ROOT#\ISO\#ISO#" />
+                  </Statement>
+                  <If description="">
+                    <Condition name="TestFile">
+                      <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\ISO\#ISO#" />
+                      <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+                      <Parameter xsi:type="StringParameter" name="Value" value="" />
+                    </Condition>
+                    <Then>
+                      <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                        <Parameter xsi:type="StringParameter" name="Comment" value="Initial checks completed, preparing for extraction" />
+                      </Statement>
+                      <Statement description="Prompting user for permission to upgrade. Note this will allow non local admin users to upgrade as well" name="Execute Shell Command - Get Results to Variable" continueOnFail="false">
+                        <Parameter xsi:type="StringParameter" name="Parameter1" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot;$a = new-object -comobject wscript.shell; $intAnswer = $a.popup('Windows 10 needs an update that takes roughly an hour, and requires your device to stay plugged into power. Would you like to apply this update now?', 0,'[Company Name]',4); If ($intAnswer -eq 6) { return 'Yes'} Else {return 'No'}&quot;" />
+                        <Parameter xsi:type="StringParameter" name="Parameter2" value="False" />
+                        <Parameter xsi:type="StringParameter" name="Parameter3" value="User" />
+                      </Statement>
+                      <If description="">
+                        <Condition name="CheckVariable">
+                          <Parameter xsi:type="StringParameter" name="VariableName" value="#global:cmdresults#" />
+                          <Parameter xsi:type="EnumParameter" name="Condition" value="Equals" />
+                          <Parameter xsi:type="StringParameter" name="Value" value="Yes" />
+                        </Condition>
+                        <Then>
+                          <Statement name="ExecuteShellCommand" continueOnFail="false">
+                            <Parameter xsi:type="StringParameter" name="Command" value="if not exist &quot;#ROOT#\Unpack&quot; mkdir &quot;#ROOT#\Unpack&quot;" />
+                            <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+                            <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+                          </Statement>
+                          <If description="Verifying extraction components are present">
+                            <Condition name="TestFile">
+                              <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Extraction\7z.exe" />
+                              <Parameter xsi:type="EnumParameter" name="Condition" value="NotExists" />
+                              <Parameter xsi:type="StringParameter" name="Value" value="" />
+                            </Condition>
+                            <Then>
+                              <If description="">
+                                <Condition name="TestFile">
+                                  <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Extraction.zip" />
+                                  <Parameter xsi:type="EnumParameter" name="Condition" value="NotExists" />
+                                  <Parameter xsi:type="StringParameter" name="Value" value="" />
+                                </Condition>
+                                <Then>
+                                  <Statement name="WriteFile" continueOnFail="false">
+                                    <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Extraction.zip" />
+                                    <Parameter xsi:type="StringParameter" name="ManagedFile" value="VSASharedFiles\10Upgrade\Extraction.zip" />
+                                    <Parameter xsi:type="BooleanParameter" name="DeleteAfter" value="False" />
+                                  </Statement>
+                                </Then>
+                              </If>
+                              <Statement name="Unzip file" continueOnFail="false">
+                                <Parameter xsi:type="StringParameter" name="Parameter1" value="#ROOT#\Extraction.zip" />
+                                <Parameter xsi:type="StringParameter" name="Parameter2" value="#ROOT#" />
+                                <Parameter xsi:type="StringParameter" name="Parameter3" value="True" />
+                              </Statement>
+                              <Statement name="DeleteFile" continueOnFail="false">
+                                <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Extraction.zip" />
+                              </Statement>
+                            </Then>
+                          </If>
+                          <Statement description="Extract ISO to &quot;Unpack&quot; directory" name="ExecuteShellCommand" continueOnFail="false">
+                            <Parameter xsi:type="StringParameter" name="Command" value="&quot;#ROOT#\Extraction\7z.exe&quot; x -y -o#ROOT#\Unpack #ROOT#\ISO\#ISO#" />
+                            <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+                            <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+                          </Statement>
+                          <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                            <Parameter xsi:type="StringParameter" name="Comment" value="ISO Unpacked, ready to trigger upgrade" />
+                          </Statement>
+                          <If description="">
+                            <Condition name="TestFile">
+                              <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Unpack\setup.exe" />
+                              <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+                              <Parameter xsi:type="StringParameter" name="Value" value="" />
+                            </Condition>
+                            <Then>
+                              <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                                <Parameter xsi:type="StringParameter" name="Comment" value="Setup files are present, triggering upgrade" />
+                              </Statement>
+                              <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                                <Parameter xsi:type="StringParameter" name="Comment" value="Procedure complete. If it fails past this log entry, it is a failure of Windows not the procedure. Troubleshooting tip: Run the Setup.exe manually, it will tell you the reason it failed." />
+                              </Statement>
+                              <Statement name="SendEmail" continueOnFail="false">
+                                <Parameter xsi:type="StringParameter" name="To" value="#EMAIL#" />
+                                <Parameter xsi:type="StringParameter" name="Subject" value="Windows 10 Upgrade: SUCCESS" />
+                                <Parameter xsi:type="MultiLineStringParameter" name="Body" value="The upgrade command has been triggered. Give the machine up to 2 hours to complete its work. If nothing appears to have happened, this means that Windows detected an error condition that requires manual intervention. Run the setup manually (C:\Temp\Win10\ISO), and Windows will present a visual indication of what steps must be taken. " />
+                              </Statement>
+                              <Statement name="ExecuteShellCommand" continueOnFail="false">
+                                <Parameter xsi:type="StringParameter" name="Command" value="#ROOT#\Unpack\setup.exe /auto:upgrade" />
+                                <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+                                <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+                              </Statement>
+                            </Then>
+                            <Else>
+                              <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                                <Parameter xsi:type="StringParameter" name="Comment" value="Setup file missing, either unpack failed, or something wiped out the unpack directory" />
+                              </Statement>
+                              <Statement name="SendEmail" continueOnFail="false">
+                                <Parameter xsi:type="StringParameter" name="To" value="#EMAIL#" />
+                                <Parameter xsi:type="StringParameter" name="Subject" value="Windows 10 Upgrade: FAILURE" />
+                                <Parameter xsi:type="MultiLineStringParameter" name="Body" value="The setup files are missing. Either the unpack failed, or something wiped out the unpack directory. See the script logs located at: Agent Procedures&gt;File Transfer&gt;Get File. " />
+                              </Statement>
+                            </Else>
+                          </If>
+                        </Then>
+                        <Else>
+                          <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                            <Parameter xsi:type="StringParameter" name="Comment" value="User declined upgrade" />
+                          </Statement>
+                          <Statement name="SendEmail" continueOnFail="false">
+                            <Parameter xsi:type="StringParameter" name="To" value="#EMAIL#" />
+                            <Parameter xsi:type="StringParameter" name="Subject" value="Windows 10 Upgrade: DECLINED" />
+                            <Parameter xsi:type="MultiLineStringParameter" name="Body" value="User declined upgrade" />
+                          </Statement>
+                        </Else>
+                      </If>
+                    </Then>
+                    <Else>
+                      <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                        <Parameter xsi:type="StringParameter" name="Comment" value="ISO Missing. Check machines local log files. " />
+                      </Statement>
+                      <Statement name="SendEmail" continueOnFail="false">
+                        <Parameter xsi:type="StringParameter" name="To" value="#EMAIL#" />
+                        <Parameter xsi:type="StringParameter" name="Subject" value="Windows 10 Upgrade: FAILURE" />
+                        <Parameter xsi:type="MultiLineStringParameter" name="Body" value="The ISO file is missing. See the script logs located at: Agent Procedures&gt;File Transfer&gt;Get File. " />
+                      </Statement>
+                    </Else>
+                  </If>
+                </Then>
+                <Else>
+                  <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="Comment" value="Files are not staged, upgrade not attempted" />
+                  </Statement>
+                  <Statement name="SendEmail" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="To" value="#EMAIL#" />
+                    <Parameter xsi:type="StringParameter" name="Subject" value="Windows 10 Upgrade: FAILURE" />
+                    <Parameter xsi:type="MultiLineStringParameter" name="Body" value="Upgrade not attempted. &#xA;&#xA;Either the needed files are not staged, or the machine is already compliant.  Check the status column first and then the script logs located at: Agent Procedures&gt;File Transfer&gt;Get File. " />
+                  </Statement>
+                </Else>
+              </If>
+            </Then>
+            <Else>
+              <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Comment" value="Workstation deploy disabled" />
+              </Statement>
+              <Statement name="SendEmail" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="To" value="#EMAIL#" />
+                <Parameter xsi:type="StringParameter" name="Subject" value="Windows 10 Upgrade: FAILURE" />
+                <Parameter xsi:type="MultiLineStringParameter" name="Body" value="This workstation is not enabled to use this tool. Speak with the AM to verify if they have allowed us to stage the 10 files on their workstations before proceeding." />
+              </Statement>
+            </Else>
+          </If>
+        </Else>
+      </If>
+    </Body>
+  </Procedure>
+</ScriptExport>
