@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScriptExport xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.kaseya.com/vsa/2008/12/Scripting">
+  <Procedure name="MAINTENANCE - Update ISO">
+    <Body description="Prompts for full path to new target ISO. Obtain the ISO with the &quot;windows 10 media creation tool&quot; (google it). Will take some time. Breaks the ISO into 200mb chunks, creates hash check file, and then opens directory containing the finished product. If the directory does not auto open, it is the kworking directory, in a subfolder called &quot;ISOUpdate&quot;. Upload the ISO segments into dropbox, add the download URL's to the check file, and replace the old check file in the kaseya shared files directory with the newly generated one. &#xA;">
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="Prompt" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="Full path to Windows ISO: " />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="TARGET" />
+      </Statement>
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="AgentTempDirectory" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="KWORKING" />
+      </Statement>
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="ConstantValue" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="#KWORKING#\ISOUpdate" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="ROOT" />
+      </Statement>
+      <Statement name="ExecuteShellCommand" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Command" value="if not exist &quot;C:\temp&quot; mkdir &quot;C:\temp&quot;" />
+        <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+        <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+      </Statement>
+      <Statement name="ExecuteShellCommand" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Command" value="if not exist &quot;#ROOT#&quot; mkdir &quot;#ROOT#&quot;" />
+        <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+        <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+      </Statement>
+      <Statement name="WriteFile" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Path" value="#KWORKING#\ISOUpdate.ps1" />
+        <Parameter xsi:type="StringParameter" name="ManagedFile" value="VSASharedFiles\10Upgrade\ISOUpdate.ps1" />
+        <Parameter xsi:type="BooleanParameter" name="DeleteAfter" value="False" />
+      </Statement>
+      <Statement name="Execute Powershell Command (64-bit, Run As System)" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Parameter1" value="" />
+        <Parameter xsi:type="StringParameter" name="Parameter2" value="powershell.exe -nologo -executionpolicy bypass -noprofile -file &quot;#KWORKING#\ISOUpdate.ps1 '#ROOT#' '#TARGET#'&quot;" />
+        <Parameter xsi:type="StringParameter" name="Parameter3" value="False" />
+      </Statement>
+      <Statement name="ExecuteShellCommand" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Command" value="Start #ROOT#" />
+        <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="User" />
+        <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+      </Statement>
+    </Body>
+  </Procedure>
+</ScriptExport>
