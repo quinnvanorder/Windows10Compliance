@@ -1,0 +1,272 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScriptExport xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.kaseya.com/vsa/2008/12/Scripting">
+  <Procedure name="DEPLOY - Windows 10 Upgrade (Workstation)">
+    <Body description="Runs automatically on global policy. IMPLICIT DENY. Will not function unless machine in question has the Windows10Compliance.txt file present within kworking. Excluded x32 and Ent instances of win 10. Tied to &quot;Windows10Compliance - Workstation Targeter&quot; view. Pulls Bitlocker recovery key into 10 compliance field in the event that an upgrade requires the use of said key ">
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="ConstantValue" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="17763" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="BUILD" />
+      </Statement>
+      <Statement description="Free space threshold set to 16gb, can be altered by changing line 2" name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="ConstantValue" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="16" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="FREESPACE" />
+      </Statement>
+      <Statement description="Change nothing below this line&#xD;&#xA;Date Variables" name="Execute Shell Command - Get Results to Variable" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Parameter1" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot;Get-Date -UFormat '%Y-%m-%d %I-%M-%S %p'&quot;" />
+        <Parameter xsi:type="StringParameter" name="Parameter2" value="False" />
+        <Parameter xsi:type="StringParameter" name="Parameter3" value="System" />
+      </Statement>
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="ConstantValue" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="#global:cmdresults#" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="FULLDATE" />
+      </Statement>
+      <Statement name="Execute Shell Command - Get Results to Variable" continueOnFail="false">
+        <Parameter xsi:type="StringParameter" name="Parameter1" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot;Get-Date -UFormat '%y-%m-%d'&quot;" />
+        <Parameter xsi:type="StringParameter" name="Parameter2" value="False" />
+        <Parameter xsi:type="StringParameter" name="Parameter3" value="System" />
+      </Statement>
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="ConstantValue" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="#global:cmdresults#" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="DATE" />
+      </Statement>
+      <Statement description="Misc Variables" name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="AgentTempDirectory" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="KWORKING" />
+      </Statement>
+      <Statement name="GetVariable" continueOnFail="false">
+        <Parameter xsi:type="EnumParameter" name="VariableType" value="ConstantValue" />
+        <Parameter xsi:type="StringParameter" name="SourceContent" value="#KWORKING#\Win10" />
+        <Parameter xsi:type="StringParameter" name="VariableName" value="ROOT" />
+      </Statement>
+      <If description="">
+        <Condition name="TestFile">
+          <Parameter xsi:type="StringParameter" name="Path" value="#KWORKING#\Windows10EXCLUDE.txt" />
+          <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+          <Parameter xsi:type="StringParameter" name="Value" value="" />
+        </Condition>
+        <Then>
+          <Statement name="UpdateSystemInfo" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="ColumnName" value="Win_10_Compliance" />
+            <Parameter xsi:type="StringParameter" name="Value" value="EXCLUDED" />
+          </Statement>
+          <Statement name="WriteScriptLogEntry" continueOnFail="false">
+            <Parameter xsi:type="StringParameter" name="Comment" value="System excluded from 10 deployment on per machine basis, terminating." />
+          </Statement>
+        </Then>
+        <Else>
+          <If description="">
+            <Condition name="TestFile">
+              <Parameter xsi:type="StringParameter" name="Path" value="#KWORKING#\Windows10Compliance.txt" />
+              <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+              <Parameter xsi:type="StringParameter" name="Value" value="" />
+            </Condition>
+            <Then>
+              <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Comment" value="Workstation deploy enabled" />
+              </Statement>
+              <Statement description="Directory creation" name="ExecuteShellCommand" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Command" value="if not exist &quot;C:\Temp&quot; mkdir &quot;C:\Temp&quot;" />
+                <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+                <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+              </Statement>
+              <Statement name="ExecuteShellCommand" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Command" value="if not exist &quot;#ROOT#&quot; mkdir &quot;#ROOT#&quot;" />
+                <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+                <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+              </Statement>
+              <If description="Component file updating / deploying">
+                <Condition name="TestFile">
+                  <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Files.csv" />
+                  <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+                  <Parameter xsi:type="StringParameter" name="Value" value="" />
+                </Condition>
+                <Then>
+                  <Statement name="DeleteFile" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Files.csv" />
+                  </Statement>
+                </Then>
+              </If>
+              <Statement name="WriteFile" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Files.csv" />
+                <Parameter xsi:type="StringParameter" name="ManagedFile" value="VSASharedFiles\10Upgrade\Files.csv" />
+                <Parameter xsi:type="BooleanParameter" name="DeleteAfter" value="False" />
+              </Statement>
+              <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Comment" value="Check file in place" />
+              </Statement>
+              <If description="">
+                <Condition name="TestFile">
+                  <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Gateways.txt" />
+                  <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+                  <Parameter xsi:type="StringParameter" name="Value" value="" />
+                </Condition>
+                <Then>
+                  <Statement name="DeleteFile" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Gateways.txt" />
+                  </Statement>
+                </Then>
+              </If>
+              <Statement name="WriteFile" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Gateways.txt" />
+                <Parameter xsi:type="StringParameter" name="ManagedFile" value="VSASharedFiles\10Upgrade\Gateways.txt" />
+                <Parameter xsi:type="BooleanParameter" name="DeleteAfter" value="False" />
+              </Statement>
+              <If description="">
+                <Condition name="TestFile">
+                  <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Windows10.ps1" />
+                  <Parameter xsi:type="EnumParameter" name="Condition" value="Exists" />
+                  <Parameter xsi:type="StringParameter" name="Value" value="" />
+                </Condition>
+                <Then>
+                  <Statement name="DeleteFile" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Windows10.ps1" />
+                  </Statement>
+                </Then>
+              </If>
+              <Statement name="WriteFile" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Windows10.ps1" />
+                <Parameter xsi:type="StringParameter" name="ManagedFile" value="VSASharedFiles\10Upgrade\Windows10.ps1" />
+                <Parameter xsi:type="BooleanParameter" name="DeleteAfter" value="False" />
+              </Statement>
+              <If description="Extraction Components">
+                <Condition name="TestFile">
+                  <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Extraction\7z.exe" />
+                  <Parameter xsi:type="EnumParameter" name="Condition" value="NotExists" />
+                  <Parameter xsi:type="StringParameter" name="Value" value="" />
+                </Condition>
+                <Then>
+                  <If description="">
+                    <Condition name="TestFile">
+                      <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Extraction.zip" />
+                      <Parameter xsi:type="EnumParameter" name="Condition" value="NotExists" />
+                      <Parameter xsi:type="StringParameter" name="Value" value="" />
+                    </Condition>
+                    <Then>
+                      <Statement name="WriteFile" continueOnFail="false">
+                        <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Extraction.zip" />
+                        <Parameter xsi:type="StringParameter" name="ManagedFile" value="VSASharedFiles\10Upgrade\Extraction.zip" />
+                        <Parameter xsi:type="BooleanParameter" name="DeleteAfter" value="False" />
+                      </Statement>
+                    </Then>
+                  </If>
+                  <Statement name="Unzip file" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="Parameter1" value="#ROOT#\Extraction.zip" />
+                    <Parameter xsi:type="StringParameter" name="Parameter2" value="#ROOT#" />
+                    <Parameter xsi:type="StringParameter" name="Parameter3" value="True" />
+                  </Statement>
+                  <Statement name="DeleteFile" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Extraction.zip" />
+                  </Statement>
+                </Then>
+              </If>
+              <Statement description="Script execution" name="WriteScriptLogEntry" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Comment" value="GATEWAY: #vMachine.ConnectionGatewayIp#" />
+              </Statement>
+              <Statement name="ExecuteShellCommand" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Command" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot;#ROOT#\Windows10.ps1 '#vMachine.ConnectionGatewayIp#' '0' '#ROOT#' '#FREESPACE#' '#BUILD#'&quot;" />
+                <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+                <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+              </Statement>
+              <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Comment" value="Workstation Windows 10 Deployment script complete, see local logfile" />
+              </Statement>
+              <Statement description="Stores all logs in kaseya's &quot;Get File&quot; directories for historical data" name="GetFile" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="RemoteFileName" value="#ROOT#\Logs.txt" />
+                <Parameter xsi:type="StringParameter" name="KServerFileName" value="10Compliance\Log #FULLDATE#.txt" />
+                <Parameter xsi:type="EnumParameter" name="Action" value="OverwriteSendAlert" />
+              </Statement>
+              <Statement name="GetVariable" continueOnFail="false">
+                <Parameter xsi:type="EnumParameter" name="VariableType" value="FileContent" />
+                <Parameter xsi:type="StringParameter" name="SourceContent" value="#ROOT#\Logs.txt" />
+                <Parameter xsi:type="StringParameter" name="VariableName" value="LOGS" />
+              </Statement>
+              <Statement name="DeleteFile" continueOnFail="true">
+                <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Logs.txt" />
+              </Statement>
+              <Statement description="Status Logging" name="GetVariable" continueOnFail="false">
+                <Parameter xsi:type="EnumParameter" name="VariableType" value="FileContent" />
+                <Parameter xsi:type="StringParameter" name="SourceContent" value="#ROOT#\Status.txt" />
+                <Parameter xsi:type="StringParameter" name="VariableName" value="STATUS" />
+              </Statement>
+              <Statement name="Execute Shell Command - Get Results to Variable" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Parameter1" value="manage-bde -status" />
+                <Parameter xsi:type="StringParameter" name="Parameter2" value="True" />
+                <Parameter xsi:type="StringParameter" name="Parameter3" value="System" />
+              </Statement>
+              <If description="">
+                <Condition name="CheckVariable">
+                  <Parameter xsi:type="StringParameter" name="VariableName" value="#global:cmdresults#" />
+                  <Parameter xsi:type="EnumParameter" name="Condition" value="Contains" />
+                  <Parameter xsi:type="StringParameter" name="Value" value="Protection On" />
+                </Condition>
+                <Then>
+                  <Statement name="Execute Shell Command - Get Results to Variable" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="Parameter1" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot;$Status = manage-bde -protectors C: -get -type RecoveryPassword;if ($Status -like '*Password*'){$array = $Status.Split('',[System.StringSplitOptions]::RemoveEmptyEntries);write-host &quot;Encrypted: &quot;$array[$array.Count-1]}&quot;" />
+                    <Parameter xsi:type="StringParameter" name="Parameter2" value="True" />
+                    <Parameter xsi:type="StringParameter" name="Parameter3" value="System" />
+                  </Statement>
+                  <Statement name="UpdateSystemInfo" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="ColumnName" value="Win_10_Compliance" />
+                    <Parameter xsi:type="StringParameter" name="Value" value="#STATUS# #global:cmdresults#" />
+                  </Statement>
+                </Then>
+                <Else>
+                  <Statement name="UpdateSystemInfo" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="ColumnName" value="Win_10_Compliance" />
+                    <Parameter xsi:type="StringParameter" name="Value" value="#STATUS#" />
+                  </Statement>
+                </Else>
+              </If>
+              <Statement name="DeleteFile" continueOnFail="true">
+                <Parameter xsi:type="StringParameter" name="Path" value="#ROOT#\Status.txt" />
+              </Statement>
+            </Then>
+            <Else>
+              <Statement name="WriteScriptLogEntry" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Comment" value="Workstation deploy disabled" />
+              </Statement>
+              <Statement name="Execute Shell Command - Get Results to Variable" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Parameter1" value="manage-bde -status" />
+                <Parameter xsi:type="StringParameter" name="Parameter2" value="True" />
+                <Parameter xsi:type="StringParameter" name="Parameter3" value="System" />
+              </Statement>
+              <If description="">
+                <Condition name="CheckVariable">
+                  <Parameter xsi:type="StringParameter" name="VariableName" value="#global:cmdresults#" />
+                  <Parameter xsi:type="EnumParameter" name="Condition" value="Contains" />
+                  <Parameter xsi:type="StringParameter" name="Value" value="Protection On" />
+                </Condition>
+                <Then>
+                  <Statement name="Execute Shell Command - Get Results to Variable" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="Parameter1" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot;$Status = manage-bde -protectors C: -get -type RecoveryPassword;if ($Status -like '*Password*'){$array = $Status.Split('',[System.StringSplitOptions]::RemoveEmptyEntries);write-host &quot;Encrypted: &quot;$array[$array.Count-1]}&quot;" />
+                    <Parameter xsi:type="StringParameter" name="Parameter2" value="True" />
+                    <Parameter xsi:type="StringParameter" name="Parameter3" value="System" />
+                  </Statement>
+                  <Statement name="UpdateSystemInfo" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="ColumnName" value="Win_10_Compliance" />
+                    <Parameter xsi:type="StringParameter" name="Value" value="#DATE# DISABLED #global:cmdresults#" />
+                  </Statement>
+                </Then>
+                <Else>
+                  <Statement name="UpdateSystemInfo" continueOnFail="false">
+                    <Parameter xsi:type="StringParameter" name="ColumnName" value="Win_10_Compliance" />
+                    <Parameter xsi:type="StringParameter" name="Value" value="#DATE# DISABLED" />
+                  </Statement>
+                </Else>
+              </If>
+              <Statement name="ExecuteShellCommand" continueOnFail="false">
+                <Parameter xsi:type="StringParameter" name="Command" value="powershell.exe -nologo -executionpolicy bypass -noprofile -command &quot; If(test-path #KWORKING#\Win10){Remove-Item #KWORKING#\Win10 -Recurse -Force}&quot;" />
+                <Parameter xsi:type="EnumParameter" name="ExecuteAccount" value="System" />
+                <Parameter xsi:type="BooleanParameter" name="Is64Bit" value="False" />
+              </Statement>
+            </Else>
+          </If>
+        </Else>
+      </If>
+    </Body>
+  </Procedure>
+</ScriptExport>
