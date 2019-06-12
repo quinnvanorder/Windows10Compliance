@@ -7,3 +7,6 @@ Some references to "C/Temp" have replaced specific kworking directories in this 
 
 Any DropBox URL's have been broken to avoid exposing data. Replace with your own URL's. The extraction zip referenced by the scripts is in the repo, all other dropbox files are created with the "MAINTENANCE - Update ISO" Procedure. 
 
+EDIT:
+This procedure was created to work around the limitation of not using existing P2P technologies. That restriction has since been lifted. A much simpler version of this is available as a Kaseya Procedure here: https://automationexchange.kaseya.com/products/569
+
